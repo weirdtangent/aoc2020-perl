@@ -13,8 +13,6 @@ my %diffs;
 
 for my $adapter (sort { $a <=> $b } @adapters) {
   my $diff = $adapter - $current;
-  die "Next adapter is >3 jolts difference\n"
-    if $diff > 3;
   $diffs{$diff} += 1;
   $current = $adapter;
 }

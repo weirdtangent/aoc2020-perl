@@ -56,27 +56,20 @@ sub run_round {
 sub count_occupied_adjacent {
   my ($row, $seat, $floorplan) = @_;
 
-  my @directions = (
-    sub { return (--$_[0], --$_[1]); },
-    sub { return ($_[0],   --$_[1]); },
-    sub { return (++$_[0], --$_[1]); },
-    sub { return (--$_[0],   $_[1]); },
-    sub { return (++$_[0],   $_[1]); },
-    sub { return (--$_[0], ++$_[1]); },
-    sub { return ($_[0],   ++$_[1]); },
-    sub { return (++$_[0], ++$_[1]); },
-  );
-
   my $total_occupied = 0;
 
-  for my $direction_sub (@directions) {
-    my ($x, $y) = (0,0);
-    my $is_occupied;
-    do {
-      ($x, $y) = &$direction_sub($x, $y);
-      $is_occupied = is_occupied_seat($row+$x, $seat+$y, $floorplan);
-    } while $is_occupied < 0;
-    $total_occupied += $is_occupied;
+  for my $x (-1..1) {
+    for my $y (-1..1) {
+      next if $x == 0 && $y == 0;
+      my ($check_x, $check_y) = ($row,$seat);
+      my $is_occupied;
+      do {
+        $check_x += $x;
+        $check_y += $y;
+        $is_occupied = is_occupied_seat($check_x, $check_y, $floorplan);
+      } while $is_occupied < 0;
+      $total_occupied += $is_occupied;
+    }
   }
 
   return $total_occupied;

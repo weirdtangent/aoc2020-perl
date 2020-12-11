@@ -12,12 +12,12 @@ my $rounds = 0;
 my $changes = 0;
 
 do {
-  # print_corner($floorplan);
   $rounds++;
   $changes = run_round($floorplan);
 } while $changes;
 
-die "After $rounds rounds, there are ".count_occupied($floorplan) . " occupied seats\n";
+print "After $rounds rounds no more seating changes occuring.\n";
+print "There are ".count_occupied_seats($floorplan) . " occupied seats.\n";
 
 
 sub run_round {
@@ -25,6 +25,7 @@ sub run_round {
 
   my @changes;
 
+  # look 8 directions around seat
   for my $row (0..(scalar(@$floorplan)-1)) {
     for my $seat (0..(scalar(@$floorplan)-1)) {
       next if $floorplan->[$row]->[$seat] eq '.';
@@ -32,10 +33,13 @@ sub run_round {
       for my $x (-1..1) {
         for my $y (-1..1) {
           next if $x == 0 && $y == 0;
-          $adjacent += check($row+$x, $seat+$y, $floorplan);
+          $adjacent += is_occipied_seat($row+$x, $seat+$y, $floorplan);
         }
       }
 
+      # Add change to to-do list
+      #   if no one around, empty seat will fill
+      #   if 4+ seats occupied, a filled seat will empty
       if ($adjacent >= 4 && $floorplan->[$row]->[$seat] ne 'L') {
         push @changes, { row => $row, seat => $seat, set => 'L' };
       }
@@ -45,8 +49,8 @@ sub run_round {
     }
   }
 
-  # print scalar(@changes)." changes to apply\n";
-
+  # Now that we have checked all seats
+  # we can actually apply the changes we scheduled
   for my $change (@changes) {
     $floorplan->[$change->{row}]->[$change->{seat}] = $change->{set};
   }
@@ -55,45 +59,27 @@ sub run_round {
 }
 
 
-sub check {
+sub is_occipied_seat {
   my ($row, $seat, $floorplan) = @_;
 
   my $max_row = scalar(@$floorplan)-1;
   my $max_seat = scalar(@$floorplan)-1;
 
+  # off the edge means not occupied
   return 0 if ($row < 0 || $seat < 0 || $row > $max_row || $seat > $max_seat);
 
-  die "Invalid seat? max is $max_row, $max_seat. Checking $row, $seat is undef" unless $floorplan->[$row]->[$seat];
-
-  return 1 if $floorplan->[$row]->[$seat] eq '#';
-  return 0;
+  # return if occupied or not
+  return $floorplan->[$row]->[$seat] eq '#';
 }
 
 
-sub print_corner {
+sub count_occupied_seats {
   my $floorplan = shift;
 
   my $count = 0;
 
-  for my $row (0..(scalar(@$floorplan)-1)) {
-    for my $seat (0..(scalar(@$floorplan)-1)) {
-      print $floorplan->[$row]->[$seat];
-    }
-    print "\n";
-  }
-  print "\n";
-}
-
-
-sub count_occupied {
-  my $floorplan = shift;
-
-  my $count = 0;
-
-  for my $row (0..(scalar(@$floorplan)-1)) {
-    for my $seat (0..(scalar(@$floorplan)-1)) {
-      $count++ if $floorplan->[$row]->[$seat] eq '#';
-    }
+  for my $row (@$floorplan) {
+    $count += scalar(grep /#/, @$row);
   }
 
   return $count;

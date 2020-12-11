@@ -33,7 +33,7 @@ sub run_round {
       for my $x (-1..1) {
         for my $y (-1..1) {
           next if $x == 0 && $y == 0;
-          $adjacent += is_occipied_seat($row+$x, $seat+$y, $floorplan);
+          $adjacent += is_occupied_seat($row+$x, $seat+$y, $floorplan);
         }
       }
 
@@ -59,7 +59,7 @@ sub run_round {
 }
 
 
-sub is_occipied_seat {
+sub is_occupied_seat {
   my ($row, $seat, $floorplan) = @_;
 
   my $max_row = scalar(@$floorplan)-1;

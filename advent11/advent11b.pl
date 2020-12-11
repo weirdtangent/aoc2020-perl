@@ -58,11 +58,13 @@ sub count_occupied_adjacent {
 
   my $total_occupied = 0;
 
+  # look 8 directions around seat
   for my $x (-1..1) {
     for my $y (-1..1) {
       next if $x == 0 && $y == 0;
       my ($check_x, $check_y) = ($row,$seat);
       my $is_occupied;
+      # keep checking until we find a seat or go off the edge
       do {
         $check_x += $x;
         $check_y += $y;

@@ -55,11 +55,8 @@ sub findFirstT {
   my $bus1_id = $bus_ids->[$bus1]; # problem only makes sense when FIRST bus is bus (T+0), so $bus1 should always be 0
   my $bus2_id = $bus_ids->[$bus2];
 
-  print "findFirstT with busses $bus1 and $bus2 (IDs $bus1_id and $bus2_id)\n";
-
-  my $prod;
-
   my $T = 0;
+  my $prod;
   do {
     $T++;
     $prod = $bus1_id * $T;
@@ -74,7 +71,6 @@ sub findNextT {
   my ($prod, $mults, $nextbus, $bus_ids) = @_;
 
   my $bus_id = $bus_ids->[$nextbus];
-  print "findNextT adding bus $nextbus (IDs $bus_id)\n";
 
   while (($prod + $nextbus) % $bus_id) {
     $prod += $mults;

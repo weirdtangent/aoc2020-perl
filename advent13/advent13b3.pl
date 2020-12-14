@@ -1,7 +1,5 @@
 #!/usr/bin/perl -Tw
 
-use List::Util qw/min/;
-
 my $earliest = <STDIN>;
 chomp $earliest;
 
@@ -35,13 +33,12 @@ my @bus_times = @bus_ids;
 
 my @busses;
 for my $x (0..@bus_ids-1) {
-    next if $bus_ids[$x] =~ /\D/;
-    push @busses, $x;
+    push @busses, $x unless $bus_ids[$x] =~ /\D/;
 }
 
 # process first two busses in findFirstT
+# then, remaining busses can ammend the answer one at a time with findNextT
 my ($prod, $mults) = findFirstT(0, 1, \@bus_ids);
-# remaining busses can ammend the answer one at a time with findNextT
 for my $x (2..@busses-1) {
   ($prod, $mults) = findNextT($prod, $mults, $busses[$x], \@bus_ids);
 }
@@ -55,11 +52,10 @@ sub findFirstT {
   my $bus1_id = $bus_ids->[$bus1]; # problem only makes sense when FIRST bus is bus (T+0), so $bus1 should always be 0
   my $bus2_id = $bus_ids->[$bus2];
 
-  my $T = 0;
+  my $T = 1;
   my $prod;
   do {
-    $T++;
-    $prod = $bus1_id * $T;
+    $prod = $bus1_id * $T++;
   } while (($prod - $bus1 + $bus2) % $bus2_id);
   my $mults = $bus1_id * $bus2_id;
 

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -wT
 
-my $verbose = 1;
+my $verbose = 0;
 
 my $total = 0;
 while(my $line = <STDIN>) {
@@ -25,8 +25,7 @@ sub precalc {
     next if $line =~ s/(\d+ \* \d+)/calc($1)/eg;
     next if $line =~ s/S(\d+)E/$1/g;
   }
-  return $line unless $line =~ /\D/;
-  return calc($line);
+  return $line+0;
 }
   
 sub calc {

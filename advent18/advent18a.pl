@@ -1,5 +1,7 @@
 #!/usr/bin/perl -wT
 
+my $verbose = 1;
+
 my $total = 0;
 while(my $line = <STDIN>) {
   chomp $line;
@@ -11,6 +13,8 @@ print "total is $total\n";
 sub precalc {
   my ($line) = @_;
 
+  print "Solve $line\n" if $verbose;
+
   $line =~ tr/\(/S/;
   $line =~ tr/\)/E/;
 
@@ -19,6 +23,7 @@ sub precalc {
     next if $line =~ s/(\d+ [\+\*] \d+)/calc($1)/e;
     next if $line =~ s/S(\d+)E/$1/g;
   }
+  return $line unless $line =~ /\D/;
   return calc($line);
 }
   
@@ -28,6 +33,7 @@ sub calc {
   my $total = 0;
   my $command='';
 
+  print "  first solve $line\n" if $verbose;
   for my $op (split ' ', $line) {
     $command = $op if $op =~ /[\+\*]/;
     if ($op =~ /^\d+$/) {

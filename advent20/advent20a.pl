@@ -65,10 +65,7 @@ sub place_tiles {
         $placed = match_tile($tilenum,$row,$col, 0, 1,\&tile_right,\&tile_left,$tiles_to_place);
         delete $tiles_to_place->{$placed} if $placed;
       }
-    }
-    if (!$verbose) {
-      print "\033[1;1H\n";
-      print_tilenums();
+      if (!$verbose) { print "\033[1;1H\n"; print_tilenums(); }
     }
   }
   # either print finished tilemap (for those watching verbose output)

@@ -1,12 +1,12 @@
 #!/usr/bin/perl -wT
 
+# my one cheat
 use Array::Transpose;
 
 our $verbose = 0;
 
-our $tiles;
-our $tiles_to_place;
-our $image;
+our $tiles;    # 2d tile definitions
+our $tilemap;  # 2d tilemap of tilenums placed
 
 while(my $line = <STDIN>) {
   chomp $line;
@@ -23,60 +23,66 @@ while(my $line = <STDIN>) {
 place_tiles();
 
 my $mult = 1;
-my $string = '';
-foreach (find_corners()) {
-  $string .= ($string ? ' * ' : '') . $_;
-  $mult *= $_;
-}
-print "$string = $mult\n";
+$mult *= $_ foreach (get_corner_tilemaps());
+print "The 4 corners multipled are $mult\n";
 
 
 sub place_tiles {
-  $tiles_to_place = { map { $_ => 1 } keys %$tiles };
+  my $tiles_to_place = { map { $_ => 1 } keys %$tiles };
   my $grid_size = scalar(keys %$tiles);
 
   # pull random tile and put at 20,20 - we'll build from there
+  # since we may expand in ANY direction (since we don't KNOW
+  # what tilenum is the "center" of the tilemap), but the input
+  # is 144 tiles, so 12x12, so starting at 20,20 means it will
+  # fit no matter how it grows
   my $random_tile_num = (keys %$tiles)[0];
-  $image->[20]->[20] = $random_tile_num;
+  $tilemap->[20]->[20] = $random_tile_num;
   delete $tiles_to_place->{$random_tile_num};
 
+  print "\033[2J\033[1;1H\n" if !$verbose;
   while (scalar(keys %$tiles_to_place)) {
     for my $row (0..40) {
       for my $col (0..40) {
-        my $tilenum = $image->[$row]->[$col];
+        my $tilenum = $tilemap->[$row]->[$col];
         next unless $tilenum;
         print "Working at $row,$col on tile $tilenum\n" if $verbose;
 
         my $placed;
 
-        print " What can go above it?\n" if $verbose;
-        $placed = match_tile($tilenum,$row,$col,-1, 0,\&tile_top,\&tile_bottom);
+        # what can go above me
+        $placed = match_tile($tilenum,$row,$col,-1, 0,\&tile_top,\&tile_bottom,$tiles_to_place);
         delete $tiles_to_place->{$placed} if $placed;
 
-        print " What can go below it?\n" if $verbose;
-        $placed = match_tile($tilenum,$row,$col, 1, 0,\&tile_bottom,\&tile_top);
+        # what can go below me
+        $placed = match_tile($tilenum,$row,$col, 1, 0,\&tile_bottom,\&tile_top,$tiles_to_place);
         delete $tiles_to_place->{$placed} if $placed;
 
-        print " What can go left of it?\n" if $verbose;
-        $placed = match_tile($tilenum,$row,$col, 0,-1,\&tile_left,\&tile_right);
+        # what can go to the left of me
+        $placed = match_tile($tilenum,$row,$col, 0,-1,\&tile_left,\&tile_right,$tiles_to_place);
         delete $tiles_to_place->{$placed} if $placed;
 
-        print " What can go right of it?\n" if $verbose;
-        $placed = match_tile($tilenum,$row,$col, 0, 1,\&tile_right,\&tile_left);
+        # what can go to the right of me
+        $placed = match_tile($tilenum,$row,$col, 0, 1,\&tile_right,\&tile_left,$tiles_to_place);
         delete $tiles_to_place->{$placed} if $placed;
       }
     }
+    if (!$verbose) {
+      print "\033[1;1H\n";
+      print_tilenums();
+    }
   }
-
-  print_image();
-  print "\n";
+  # either print finished tilemap (for those watching verbose output)
+  # or move to below tilemap we've been showing on screen
+  # $verbose ? print_tilenums() : print "\033[15E\n";
+  print_tilenums() if $verbose;
 }
 
 sub match_tile {
-  my ($tilenum,$row,$col,$add_row,$add_col,$get_match_str,$get_check_str) = @_;
+  my ($tilenum,$row,$col,$add_row,$add_col,$get_match_str,$get_check_str,$tiles_to_place) = @_;
 
   # skip processing if location already taken
-  if ($image->[$row+$add_row]->[$col+$add_col]) {
+  if ($tilemap->[$row+$add_row]->[$col+$add_col]) {
     print " Skipping because there is already a tile there\n" if $verbose;
     return 0
   }
@@ -89,29 +95,26 @@ sub match_tile {
 
     while (1) {
       if (check_tile($tilenum,$check_tile_num,$row,$col,$add_row,$add_col,$get_match_str,$get_check_str)) {
-        $image->[$row+$add_row]->[$col+$add_col] = $check_tile_num;
+        $tilemap->[$row+$add_row]->[$col+$add_col] = $check_tile_num;
         return $check_tile_num;
       }
       
       if ($rotate_count < 4) {
         $rotate_count++;
-        rotate_tile($check_tile_num);
-        next;
+        rotate_tilenum($check_tile_num);
       }
       elsif ($flip_h_count < 1) {
         $flip_h_count++;
         $rotate_count = 0;
-        flip_tile_h($check_tile_num);
-        next;
+        flip_tilenum_h($check_tile_num);
       }
       elsif ($flip_v_count < 1) {
         $flip_v_count++;
         $rotate_count = 0;
-        flip_tile_v($check_tile_num);
-        next;
+        flip_tilenum_v($check_tile_num);
       }
       else {
-        print "$check_tile_num failed\n" if $verbose;
+        # that's all the things we can try with this $check_tile_num
         last;
       }
     }
@@ -132,33 +135,34 @@ sub check_tile {
   my $inplace_tilenum;
 
   # ok, how about the other 3 directions?
-  # ABOVE the new tile (unless we came from above)
-  if ($inplace_tilenum = $image->[$row+$add_row-1]->[$col+$add_col] && $add_row != 1) {
+  #
+  # ABOVE the new tile (unless we came from above, so we don't need to check again)
+  if ($inplace_tilenum = $tilemap->[$row+$add_row-1]->[$col+$add_col] && $add_row != 1) {
     print "above THAT is already $inplace_tilenum, checking\n" if $verbose;
     return 0 unless tile_top($check_tile_num) eq tile_bottom($inplace_tilenum);
   }
-  # BELOW the new tile (unless we came from below)
-  if ($inplace_tilenum = $image->[$row+$add_row+1]->[$col+$add_col] && $add_row != -1) {
+  # BELOW the new tile (unless we came from below, so we don't need to check again)
+  if ($inplace_tilenum = $tilemap->[$row+$add_row+1]->[$col+$add_col] && $add_row != -1) {
     print "below THAT is already $inplace_tilenum, checking\n" if $verbose;
     return 0 unless tile_bottom($check_tile_num) eq tile_top($inplace_tilenum);
   }
-  # TO THE LEFT OF the new tile (unless we came from the left)
-  if ($inplace_tilenum = $image->[$row+$add_row]->[$col+$add_col-1] && $add_col != 1) {
+  # TO THE LEFT OF the new tile (unless we came from the left, so we don't need to check again)
+  if ($inplace_tilenum = $tilemap->[$row+$add_row]->[$col+$add_col-1] && $add_col != 1) {
     print "to the left of THAT is already $inplace_tilenum, checking\n" if $verbose;
     return 0 unless tile_left($check_tile_num) eq tile_right($inplace_tilenum);
   }
-  # TO THE RIGHT OF the new tile (unless we came from the right)
-  if ($inplace_tilenum = $image->[$row+$add_row]->[$col+$add_col+1] && $add_col != -1) {
+  # TO THE RIGHT OF the new tile (unless we came from the right, so we don't need to check again)
+  if ($inplace_tilenum = $tilemap->[$row+$add_row]->[$col+$add_col+1] && $add_col != -1) {
     print "to the right of THAT is already $inplace_tilenum, checking\n" if $verbose;
     return 0 unless tile_right($check_tile_num) eq tile_left($inplace_tilenum);
   }
 
   # all directions are either equal or the edges match, looks good!
-  print "  Passes ALL checks!\n"  if $verbose;
+  print "  Passes ALL checks! $check_tilenum is GOOD to place there\n"  if $verbose;
   return 1;
 }
 
-sub rotate_tile {
+sub rotate_tilenum {
   my ($tilenum) = @_;
 
   my $tile = $tiles->{$tilenum};
@@ -169,7 +173,7 @@ sub rotate_tile {
   $tiles->{$tilenum} = $new_tile;
 }
 
-sub flip_tile_h {
+sub flip_tilenum_h {
   my ($tilenum) = @_;
 
   my $tile = $tiles->{$tilenum};
@@ -181,14 +185,14 @@ sub flip_tile_h {
   $tiles->{$tilenum} = $new_tile;
 }
 
-sub flip_tile_v {
+sub flip_tilenum_v {
   my ($tilenum) = @_;
 
-  rotate_tile($tilenum);
-  flip_tile_h($tilenum);
-  rotate_tile($tilenum);
-  rotate_tile($tilenum);
-  rotate_tile($tilenum);
+  rotate_tilenum($tilenum);
+  flip_tilenum_h($tilenum);
+  rotate_tilenum($tilenum);
+  rotate_tilenum($tilenum);
+  rotate_tilenum($tilenum);
 }
 
 sub tile_top {
@@ -227,15 +231,36 @@ sub tile_right {
   return $string;
 }
 
-sub print_image {
+# we have a big workspace (40x40), but sample is just 3x3 and 
+# input is 12x12, so lets find the corners so we can just print
+# the active workspace (or multiply the tilenums there)
+sub find_corners {
+  my ($min_y, $max_y, $min_x, $max_x) = (40,0,40,0);
   for my $row (0..39) {
     for my $col (0..39) {
-      $image->[$row]->[$col]
-        ? printf "%04d ", $image->[$row]->[$col]
+      if ($tilemap->[$row]->[$col]) {
+        $min_y = $row if $row < $min_y;
+        $max_y = $row if $row > $max_y;
+        $min_x = $col if $col < $min_x;
+        $max_x = $col if $col > $max_x;
+      }
+    }
+  }
+  return ($min_y,$max_y,$min_x,$max_x);
+}
+
+sub print_tilenums {
+  my ($min_y, $max_y, $min_x, $max_x) = find_corners();
+
+  for my $row ($min_y..$max_y) {
+    for my $col ($min_x..$max_x) {
+      $tilemap->[$row]->[$col]
+        ? printf "%04d ", $tilemap->[$row]->[$col]
         : print  "____ ";
     }
     print "\n";
   }
+  print "\n";
 }
 
 sub print_tile {
@@ -252,26 +277,7 @@ sub print_tile {
   print "\n";
 }
 
-sub find_corners {
-  for my $row (0..39) {
-    for my $col (0..39) {
-      if ($image->[$row]->[$col]) {
-        return ($image->[$row]->[$col], $image->[$row]->[$col+11], $image->[$row+11]->[$col], $image->[$row+11]->[$col+11]);
-      }
-    }
-  }
-  die "Didn't find corners!?";
+sub get_corner_tilemaps {
+  my ($min_y, $max_y, $min_x, $max_x) = find_corners();
+  return ($tilemap->[$min_y]->[$min_x], $tilemap->[$min_y]->[$max_x], $tilemap->[$max_y]->[$min_x], $tilemap->[$max_y]->[$max_x]);
 }
-
-# Tile 2311:
-# ..##.#..#.
-# ##..#.....
-# #...##..#.
-# ####.#...#
-# ##.##.###.
-# ##...#.###
-# .#.#.#..##
-# ..#....#..
-# ###...#.#.
-# ..###..###
-#

@@ -100,18 +100,18 @@ sub match_tile {
       }
       
       if ($rotate_count < 4) {
-        $rotate_count++;
         rotate_tilenum($check_tile_num);
+        $rotate_count++;
       }
       elsif ($flip_h_count < 1) {
+        flip_tilenum_h($check_tile_num);
         $flip_h_count++;
         $rotate_count = 0;
-        flip_tilenum_h($check_tile_num);
       }
       elsif ($flip_v_count < 1) {
+        flip_tilenum_v($check_tile_num);
         $flip_v_count++;
         $rotate_count = 0;
-        flip_tilenum_v($check_tile_num);
       }
       else {
         # that's all the things we can try with this $check_tile_num

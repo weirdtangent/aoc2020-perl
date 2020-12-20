@@ -443,7 +443,7 @@ sub reveal_seamonster {
   print "Revealing sea monster at $row,$col at size $monster_height x $monster_width\n" if $verbose;
   for my $y (0..$monster_height-1) {
     for my $x (0..$monster_width-1) {
-      $photo->[$row+$y]->[$col+$x] = "\033[35;1mO\033[0m" if $monster->[$y]->[$x] eq '#';
+      $photo->[$row+$y]->[$col+$x] = $verbose ? 'O' : "\033[35;1mO\033[0m" if $monster->[$y]->[$x] eq '#';
     }
   }
 }

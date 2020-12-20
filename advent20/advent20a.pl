@@ -29,7 +29,6 @@ print "The 4 corners multipled are $mult\n";
 
 sub place_tiles {
   my $tiles_to_place = { map { $_ => 1 } keys %$tiles };
-  my $grid_size = scalar(keys %$tiles);
 
   # pull random tile and put at 20,20 - we'll build from there
   # since we may expand in ANY direction (since we don't KNOW
@@ -74,7 +73,6 @@ sub place_tiles {
   }
   # either print finished tilemap (for those watching verbose output)
   # or move to below tilemap we've been showing on screen
-  # $verbose ? print_tilenums() : print "\033[15E\n";
   print_tilenums() if $verbose;
 }
 

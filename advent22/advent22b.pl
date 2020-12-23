@@ -9,6 +9,7 @@ my $cards;
 my $version;
 my $winner;
 my $round = 1;
+my $sub_games=0;
 
 while(my $line = <STDIN>) {
   chomp $line;
@@ -46,6 +47,7 @@ while (!$winner && scalar(@{$cards->{1}}) && scalar(@{$cards->{2}})) {
     if (scalar(@{$cards->{1}}) >= $player1_card && scalar(@{$cards->{2}}) >= $player2_card) {
       print "Round $round: Recursive game!\n" if $verbose;
       $round_winner = recursive_game($player1_card, $player2_card);
+      $sub_games++;
     }
     else {
       print "Round $round: Normal round\n" if $verbose;
@@ -55,6 +57,8 @@ while (!$winner && scalar(@{$cards->{1}}) && scalar(@{$cards->{2}})) {
     push @{$cards->{$round_winner}}, $round_winner == 1 ? $player2_card : $player1_card;
   }
 }
+
+print "Winner after $round rounds and $sub_games recrusive games!\n";
 
 $winner ||= scalar(@{$cards->{1}}) ? 1 : 2;
 my $score = 0;

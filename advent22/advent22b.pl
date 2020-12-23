@@ -58,7 +58,7 @@ while (!$winner && scalar(@{$cards->{1}}) && scalar(@{$cards->{2}})) {
   }
 }
 
-print "Winner after $round rounds and $sub_games recrusive games!\n";
+print "Winner after $round rounds, and $sub_games of those were actually recursive games!\n";
 
 $winner ||= scalar(@{$cards->{1}}) ? 1 : 2;
 my $score = 0;

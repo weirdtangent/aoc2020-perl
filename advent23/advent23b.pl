@@ -1,26 +1,27 @@
 #!/usr/bin/perl -wT
 
+use List::Util qw(max);
 use List::MoreUtils qw(first_index);
-
-my $line = '789465123';
-my @labels = split '', $line;
-
-# setup linked list for unique string above
-for (0..@labels-1) {
-  $cups->{$labels[$_]} = { prev => $labels[($_ - 1) % @labels], next => $labels[($_ + 1) % @labels] };
-}
-# add 10 - 1,000,000 to linked list
-for (10..1_000_000) {
-  $cups->{$_} = { prev => $_ - 1, next => $_ + 1 };
-}
-# fix pointers for circular list
-link_pointers($labels[-1], 10);
-link_pointers(1_000_000, $labels[0]);
 
 # setup
 my $move = 0;
 my $max_cup = 1_000_000;
 my $max_moves = 10_000_000;
+
+my $line = '789465123';
+my @labels = split '', $line;
+my $max_label = max @labels;
+
+# setup linked list for unique string above
+$cups->{$labels[$_]} = { prev => $labels[$_ - 1], next => $labels[($_ + 1) % @labels] } for (0..@labels-1);
+
+# add 10 - 1,000,000 to linked list
+$cups->{$_} = { prev => $_ - 1, next => $_ + 1 } for (10..$max_cup);
+
+# fix pointers for circular list
+link_pointers($labels[-1], 10);
+link_pointers($max_cup, $labels[0]);
+
 my $current_label = $labels[0];
 
 while ($move < $max_moves) {
